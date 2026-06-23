@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laneway 局域网传输台</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⇄</text></svg>"/>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="brand-row">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <div>
+          <p class="eyebrow">LANEWAY TRANSFER CONSOLE</p>
+          <h1>Laneway</h1>
+        </div>
+      </div>
+
+      <div class="address-card" aria-label="局域网访问地址">
+        <div class="address-copy">
+          <span class="address-label">同网设备访问</span>
+          <code id="lan-url">正在获取局域网地址...</code>
+        </div>
+        <button id="copy-lan-btn" class="copy-btn" type="button">复制访问链接</button>
+      </div>
+    </div>
+
+    <div class="status-grid" aria-label="实时传输状态">
+      <article class="stat-card live-card">
+        <span class="stat-kicker">在线</span>
+        <strong id="stat-online">0</strong>
+        <span class="stat-label">当前打开页面的设备数</span>
+        <i class="live-dot" aria-hidden="true"></i>
+      </article>
+      <article class="stat-card">
+        <span class="stat-kicker">吞吐</span>
+        <strong id="stat-speed">0 B/s</strong>
+        <span class="stat-label">上传与下载合计速度</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-kicker">队列</span>
+        <strong id="stat-active">0</strong>
+        <span class="stat-label">正在传输的任务</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-kicker">完成</span>
+        <strong id="stat-completed">0</strong>
+        <span class="stat-label">本次服务完成任务</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-kicker">累计</span>
+        <strong id="stat-total-bytes">0 B</strong>
+        <span class="stat-label">本次服务传输总量</span>
+      </article>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="panel upload-panel" aria-labelledby="upload-title">
+      <div class="panel-header compact-header">
+        <div>
+          <p class="section-label">UPLOAD BAY</p>
+          <h2 id="upload-title">接收文件</h2>
+        </div>
+        <p class="panel-note">文件将保存到 <code>upload/</code></p>
+      </div>
+
+      <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="选择或拖拽文件上传">
+        <div class="drop-symbol" aria-hidden="true">⇧</div>
+        <div class="drop-copy">
+          <strong>拖入文件，立即入站</strong>
+          <span>支持多文件上传；同名文件会自动追加序号，避免覆盖。</span>
+        </div>
+        <input type="file" id="file-input" multiple hidden />
+      </div>
+
+      <div class="hint-strip">
+        <span>建议：大文件传输时保持此页面打开</span>
+        <span>目标目录：upload/</span>
+      </div>
+
+      <div class="upload-queue" id="upload-queue" aria-live="polite"></div>
+    </section>
+
+    <section class="panel download-panel" aria-labelledby="files-title">
+      <div class="panel-header files-header">
+        <div>
+          <p class="section-label">FILE DEPOT</p>
+          <h2 id="files-title">文件货架</h2>
+        </div>
+        <button class="refresh-btn" id="refresh-btn" title="刷新文件列表" type="button" aria-label="刷新文件列表">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+            <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+            <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="file-context">
+        <p>上方用于分发 <code>download/</code> 里的共享文件；下方用于核对 <code>upload/</code> 中刚接收的文件。</p>
+      </div>
+
+      <div class="file-shelves">
+        <section class="file-shelf shared-shelf" aria-labelledby="download-shelf-title">
+          <div class="shelf-header">
+            <div>
+              <p class="section-label">OUTBOUND</p>
+              <h3 id="download-shelf-title">共享下载</h3>
+            </div>
+            <span class="shelf-count" id="download-count">0 个文件</span>
+          </div>
+          <div class="file-list" id="download-file-list" aria-live="polite">
+            <div class="empty-state shelf-empty">
+              <span class="empty-icon">DEPOT</span>
+              <h3>共享货架为空</h3>
+              <p>把要分发的文件放进 <code>download/</code> 文件夹，刷新后同网设备即可下载。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="file-shelf received-shelf" aria-labelledby="upload-shelf-title">
+          <div class="shelf-header">
+            <div>
+              <p class="section-label">INBOUND</p>
+              <h3 id="upload-shelf-title">已上传</h3>
+            </div>
+            <span class="shelf-count" id="upload-count">0 个文件</span>
+          </div>
+          <div class="file-list" id="upload-file-list" aria-live="polite">
+            <div class="empty-state shelf-empty">
+              <span class="empty-icon">INBOX</span>
+              <h3>还没有收到文件</h3>
+              <p>其他设备上传成功后，文件会出现在这里，并保存在 <code>upload/</code> 文件夹。</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel transfers-panel" aria-labelledby="transfer-title">
+      <div class="panel-header compact-header">
+        <div>
+          <p class="section-label">LIVE LANES</p>
+          <h2 id="transfer-title">实时通道</h2>
+        </div>
+        <span class="badge" id="transfer-count">0 个任务</span>
+      </div>
+
+      <div class="lane-ruler" aria-hidden="true">
+        <span>IN</span><span>OUT</span><span>MB/s</span>
+      </div>
+
+      <div class="transfer-list" id="transfer-list" aria-live="polite">
+        <div class="empty-state small-empty">
+          <span class="empty-icon">IDLE</span>
+          <h3>通道空闲</h3>
+          <p>上传或下载开始后，这里会显示文件名、速度和进度。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>本工具仅面向可信局域网使用；公网访问前请自行增加认证与防火墙规则。</span>
+    <span id="footer-uptime">运行 0 秒</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
